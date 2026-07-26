@@ -846,7 +846,7 @@
   <section class="panel" id="panel-admin">
 
     <div class="admin-section">
-      <h2>All Members</h2>
+      <h2>All Members <span id="roster-count" style="color:var(--ink-muted); font-weight:500; font-size:0.85rem;"></span></h2>
       <p class="hint">Everyone registered so far, with their total paid and current status.</p>
       <div class="roster-list" id="roster-list"></div>
     </div>
@@ -1217,6 +1217,11 @@ function buildRecordCard(member){
 function renderRoster(){
   const list = document.getElementById('roster-list');
   if(!list) return;
+
+  const countEl = document.getElementById('roster-count');
+  if(countEl){
+    countEl.textContent = '(' + MEMBERS.length + ' registered)';
+  }
 
   if(MEMBERS.length === 0){
     list.innerHTML = '<div class="roster-row"><span style="color:var(--ink-muted);">No members added yet.</span></div>';
