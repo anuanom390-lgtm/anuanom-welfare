@@ -399,8 +399,8 @@
     width: 76px;
     height: 76px;
     border-radius: 50%;
-    border: 2px dashed var(--accent);
-    color: var(--accent-soft);
+    border: 2px dashed #198038;
+    color: #198038;
     transform: rotate(-9deg);
     display: flex;
     align-items: center;
@@ -414,7 +414,7 @@
     text-transform: uppercase;
     padding: 6px;
     opacity: 0.9;
-    box-shadow: 0 0 18px rgba(15,98,254,0.12);
+    box-shadow: 0 0 18px rgba(36,161,72,0.15);
     animation: stamp-down 0.35s ease-out;
   }
 
@@ -423,11 +423,26 @@
     to{ opacity: 0.9; transform: rotate(-9deg) scale(1); }
   }
 
+  .record-summary{
+    padding: 12px 22px 0;
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
   .perforation{
     height: 0;
     border-top: 1px dashed var(--rule);
-    margin: 0 22px;
+    margin: 14px 22px 0;
     position: relative;
+  }
+
+  .record-upcoming-note{
+    margin: 10px 22px 0;
+    font-size: 0.76rem;
+    color: var(--ink-muted);
+    font-style: italic;
   }
 
   .month-grid{
@@ -459,7 +474,7 @@
   }
 
   .amount-pill.paid{
-    background: var(--accent);
+    background: #198038;
     color: #FFFFFF;
   }
 
@@ -514,9 +529,9 @@
   }
 
   .note.good{
-    background: rgba(15,98,254,0.10);
-    color: var(--good);
-    border: 1px solid rgba(15,98,254,0.25);
+    background: rgba(36,161,72,0.10);
+    color: #198038;
+    border: 1px solid rgba(36,161,72,0.25);
   }
 
   .note.alert{
@@ -543,6 +558,7 @@
   }
 
   .stat-card.alert-border{ border-left-color: var(--alert); }
+  .stat-card.full-width{ grid-column: 1 / -1; }
 
   .stat-label{
     font-size: 0.68rem;
@@ -712,11 +728,47 @@
 
   .amount-cell.has-amount{ border-color: rgba(15,98,254,0.4); }
 
+  .save-status{
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #198038;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    margin: 10px 0 0;
+    min-height: 1.2em;
+  }
+
+  .save-status.show{ opacity: 1; }
+
   .admin-editing-name{
     font-family: 'Fraunces', serif;
     font-size: 1.15rem;
     font-weight: 600;
     margin: 4px 0 2px;
+  }
+
+  .roster-filter-buttons{
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .roster-filter-btn{
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    color: var(--ink-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+
+  .roster-filter-btn.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
   }
 
   .roster-list{
@@ -740,6 +792,13 @@
 
   .roster-row:last-child{ border-bottom: none; }
 
+  .roster-row-clickable{
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+
+  .roster-row-clickable:hover{ background: var(--surface-2); }
+
   .roster-name{ font-weight: 600; color: var(--ink); }
 
   .roster-meta{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -760,7 +819,7 @@
     white-space: nowrap;
   }
 
-  .roster-badge.ok{ background: rgba(15,98,254,0.12); color: var(--accent-soft); }
+  .roster-badge.ok{ background: rgba(36,161,72,0.12); color: #198038; }
   .roster-badge.ahead{ background: rgba(36,161,72,0.12); color: #198038; }
   .roster-badge.due{ background: rgba(218,30,40,0.12); color: var(--alert-soft); }
 
@@ -838,6 +897,7 @@
   <!-- DASHBOARD -->
   <section class="panel" id="panel-dashboard">
     <div class="stat-grid" id="stat-grid"></div>
+    <p id="dashboard-updated" style="text-align:center; color:var(--ink-muted); font-size:0.76rem; margin:-14px 0 24px;"></p>
     <div class="section-label">Monthly Collections</div>
     <div id="bar-list"></div>
   </section>
@@ -847,11 +907,19 @@
 
     <div class="admin-section">
       <h2>All Members <span id="roster-count" style="color:var(--ink-muted); font-weight:500; font-size:0.85rem;"></span></h2>
-      <p class="hint">Everyone registered so far, with their total paid and current status.</p>
+      <p class="hint">Everyone registered so far, with their total paid and current status. Tap a name to edit their payments or remove them.</p>
+      <div class="search-wrap" style="margin-bottom:10px;">
+        <input type="text" id="roster-filter-input" placeholder="Filter by name...">
+      </div>
+      <div class="roster-filter-buttons">
+        <button class="roster-filter-btn active" data-filter="all">All</button>
+        <button class="roster-filter-btn" data-filter="owing">Owing</button>
+        <button class="roster-filter-btn" data-filter="paid">Paid Up</button>
+      </div>
       <div class="roster-list" id="roster-list"></div>
     </div>
 
-    <div class="admin-section">
+    <div class="admin-section" id="edit-member-section">
       <h2>Edit a member's payments</h2>
       <p class="hint">Search for someone, then enter the exact amount they paid for each month. Changes save instantly for everyone.</p>
       <div class="search-wrap">
@@ -880,14 +948,23 @@
         The payments part is optional. For each month write <strong>Month:Amount</strong>, separated
         by semicolons. Writing just a month name with no amount counts it as a full month's payment
         (<span id="amount-reference"></span>). Copy month spellings exactly from the list below.<br><br>
-        <span style="font-family:'IBM Plex Mono',monospace; font-size:0.78rem;">Name | Jul '26:30; Aug '26:45</span><br><br>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:0.78rem;">Name | July 2026:30; August 2026:45</span><br><br>
         Available month labels: <span id="month-reference" style="color:var(--accent-soft); font-family:'IBM Plex Mono',monospace; font-size:0.76rem;"></span>
       </p>
-      <textarea id="import-textarea" placeholder="Kwame Asante | Jul '26:30; Aug '26:45&#10;Ama Darko |"></textarea>
+      <textarea id="import-textarea" placeholder="Kwame Asante | July 2026:30; August 2026:45&#10;Ama Darko |"></textarea>
       <div class="btn-row">
         <button class="btn btn-primary" id="import-btn">Import List</button>
       </div>
       <p class="import-status" id="import-status"></p>
+    </div>
+
+    <div class="admin-section">
+      <h2>Data &amp; Backup</h2>
+      <p class="hint">Download a spreadsheet-friendly report, or a raw backup copy of everything in case anything ever needs restoring.</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="export-csv-btn">Export as CSV</button>
+        <button class="btn btn-secondary" id="export-json-btn">Download Backup (JSON)</button>
+      </div>
     </div>
 
     <div class="btn-row">
@@ -907,7 +984,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, addDoc, updateDoc, deleteDoc
+  doc, addDoc, updateDoc, deleteDoc, deleteField
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 /* ============================================================
@@ -919,14 +996,14 @@ const CONFIG = {
   subtitle: "Monthly Welfare Contributions",
   currency: "₵",
   monthlyAmount: 30,
-  periodLabel: "Jul 2026 – Jun 2027",
+  periodLabel: "July 2026 – June 2027",
 
   // The core months everyone is expected to pay for.
   // Keep the spelling exact -- it's used as the key for each month's payment.
-  months: ["Jul '26","Aug '26","Sep '26","Oct '26","Nov '26","Dec '26","Jan '27","Feb '27","Mar '27","Apr '27","May '27","Jun '27"],
+  months: ["July 2026","August 2026","September 2026","October 2026","November 2026","December 2026","January 2027","February 2027","March 2027","April 2027","May 2027","June 2027"],
 
   // Months after the core period -- people can pay ahead into these.
-  extraMonths: ["Jul '27","Aug '27","Sep '27","Oct '27","Nov '27","Dec '27"],
+  extraMonths: ["July 2027","August 2027","September 2027","October 2027","November 2027","December 2027"],
 
   // Money already paid out (insurance premiums, claims, etc).
   // "Balance on hand" = total collected minus this figure.
@@ -955,6 +1032,8 @@ const membersCol = collection(db, "members");
 let MEMBERS = [];         // live list, kept in sync with Firestore
 let isAdmin = false;
 let currentAdminEditId = null;
+let rosterFilterText = '';
+let rosterStatusFilter = 'all';
 
 /* ============================================================
    Helpers
@@ -963,21 +1042,53 @@ function fmt(n){
   return CONFIG.currency + n.toLocaleString('en-US');
 }
 
+// Escapes text before it's inserted as HTML, so a name containing
+// characters like < or > displays as plain text instead of running as code.
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 const ALL_MONTHS = [...CONFIG.months, ...CONFIG.extraMonths];
 
-// Turns a "Jul '26" style label into a single sortable number (year*12 + month index),
+// Turns a "July 2026" style label into a single sortable number (year*12 + month index),
 // so we can tell whether a given month has started yet.
 function monthKey(label){
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const [abbr, yearPart] = label.split(" ");
-  const year = 2000 + parseInt(yearPart.replace("'", ""), 10);
-  return year * 12 + monthNames.indexOf(abbr);
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const [name, yearPart] = label.split(" ");
+  return parseInt(yearPart, 10) * 12 + monthNames.indexOf(name);
 }
 
 function isDueByNow(month){
   const now = new Date();
   const currentKey = now.getFullYear() * 12 + now.getMonth();
   return monthKey(month) <= currentKey;
+}
+
+// Earlier versions of this site stored months as short labels like "Jul '26".
+// This maps every old label to its new full-name equivalent, so any data already
+// saved under the old format can be carried over automatically instead of lost.
+const OLD_TO_NEW_MONTH_LABELS = {
+  "Jul '26": "July 2026", "Aug '26": "August 2026", "Sep '26": "September 2026",
+  "Oct '26": "October 2026", "Nov '26": "November 2026", "Dec '26": "December 2026",
+  "Jan '27": "January 2027", "Feb '27": "February 2027", "Mar '27": "March 2027",
+  "Apr '27": "April 2027", "May '27": "May 2027", "Jun '27": "June 2027",
+  "Jul '27": "July 2027", "Aug '27": "August 2027", "Sep '27": "September 2027",
+  "Oct '27": "October 2027", "Nov '27": "November 2027", "Dec '27": "December 2027"
+};
+
+function migrateOldMonthLabels(member){
+  const oldKeys = Object.keys(member.payments || {}).filter(k => OLD_TO_NEW_MONTH_LABELS[k]);
+  if(oldKeys.length === 0) return;
+
+  const updates = {};
+  oldKeys.forEach(oldKey => {
+    const newKey = OLD_TO_NEW_MONTH_LABELS[oldKey];
+    updates['payments.' + newKey] = member.payments[oldKey];
+    updates['payments.' + oldKey] = deleteField();
+  });
+  updateDoc(doc(db, 'members', member._id), updates);
 }
 
 // -- Header --
@@ -1049,6 +1160,10 @@ onAuthStateChanged(auth, user => {
     if(adminTabBtn.classList.contains('active')){
       document.querySelector('.tab[data-tab="record"]').click();
     }
+  } else {
+    // Logging in is also the moment to catch up on any old-format month
+    // labels, since only an admin has permission to write the fix.
+    MEMBERS.forEach(migrateOldMonthLabels);
   }
 });
 
@@ -1058,10 +1173,20 @@ onAuthStateChanged(auth, user => {
 const membersQuery = query(membersCol, orderBy("name"));
 onSnapshot(membersQuery, snapshot => {
   MEMBERS = snapshot.docs.map(d => ({ _id: d.id, ...d.data() }));
+  // Firestore's own ordering is case-sensitive (ALL CAPS names sort oddly against
+  // mixed-case ones), so we re-sort here for a true, human-expected A-Z order.
+  MEMBERS.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   renderDashboard();
   renderRoster();
   refreshSearch(document.getElementById('search-input'), document.getElementById('match-list'), document.getElementById('record-area'), false);
   refreshSearch(document.getElementById('admin-search-input'), document.getElementById('admin-match-list'), null, true);
+
+  // Only an admin has write permission, so only run the one-time old-label
+  // migration once someone's actually logged in. It's harmless to call
+  // repeatedly -- once a member's keys are migrated, there's nothing left to do.
+  if(isAdmin){
+    MEMBERS.forEach(migrateOldMonthLabels);
+  }
 }, err => {
   document.getElementById('record-area').innerHTML =
     '<p class="empty-hint">Could not load records. Check your internet connection, or that Firestore rules were published.</p>';
@@ -1117,7 +1242,7 @@ function refreshSearch(inputEl, listEl, areaEl, isAdminMode){
     matches.forEach(m => {
       const item = document.createElement('button');
       item.className = 'match-item';
-      item.innerHTML = m.name;
+      item.innerHTML = escapeHtml(m.name);
       item.addEventListener('click', () => {
         inputEl.value = m.name;
         listEl.style.display = 'none';
@@ -1143,17 +1268,18 @@ function buildRecordCard(member){
   // A core month counts as "settled" once its payment meets the standard amount.
   const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
   const shortfallTotal = shortMonths.reduce((sum, m) => sum + (CONFIG.monthlyAmount - amountFor(member, m)), 0);
-  const advanceMonths = CONFIG.extraMonths.filter(m => amountFor(member, m) > 0);
+  const advanceMonths = ALL_MONTHS.filter(m => !isDueByNow(m) && amountFor(member, m) > 0);
   const advanceTotal = advanceMonths.reduce((sum, m) => sum + amountFor(member, m), 0);
   const totalPaid = ALL_MONTHS.reduce((sum, m) => sum + amountFor(member, m), 0);
   const isCompliant = shortMonths.length === 0;
+  const paidCoreCount = CONFIG.months.filter(m => amountFor(member, m) >= CONFIG.monthlyAmount).length;
 
   const head = document.createElement('div');
   head.className = 'record-head';
   head.innerHTML =
     '<div>' +
       '<div class="record-id">Member No. ' + memberNo + '</div>' +
-      '<div class="record-name">' + member.name + '</div>' +
+      '<div class="record-name">' + escapeHtml(member.name) + '</div>' +
     '</div>';
 
   if(isCompliant){
@@ -1164,12 +1290,23 @@ function buildRecordCard(member){
   }
 
   card.appendChild(head);
+
+  const summary = document.createElement('div');
+  summary.className = 'record-summary';
+  summary.textContent = paidCoreCount + ' of ' + CONFIG.months.length + ' months paid';
+  card.appendChild(summary);
+
   card.appendChild(Object.assign(document.createElement('div'), { className: 'perforation' }));
 
   const grid = document.createElement('div');
   grid.className = 'month-grid';
 
-  ALL_MONTHS.forEach(month => {
+  // Only show a month if it's actually due by now, or the person has already
+  // paid into it -- so the grid isn't a wall of dashes for months that
+  // haven't started yet.
+  const visibleMonths = ALL_MONTHS.filter(month => isDueByNow(month) || amountFor(member, month) > 0);
+
+  visibleMonths.forEach(month => {
     const cell = document.createElement('div');
     const isExtra = CONFIG.extraMonths.includes(month);
     const notDueYet = isExtra || !isDueByNow(month);
@@ -1185,6 +1322,15 @@ function buildRecordCard(member){
   });
   card.appendChild(grid);
 
+  const hiddenCount = ALL_MONTHS.length - visibleMonths.length;
+  if(hiddenCount > 0){
+    const upcomingNote = document.createElement('p');
+    upcomingNote.className = 'record-upcoming-note';
+    upcomingNote.textContent = hiddenCount + ' more month' + (hiddenCount > 1 ? 's' : '') +
+      ' in this contribution year ' + (hiddenCount > 1 ? "haven't" : "hasn't") + ' started yet.';
+    card.appendChild(upcomingNote);
+  }
+
   const totalRow = document.createElement('div');
   totalRow.className = 'total-row';
   totalRow.innerHTML =
@@ -1196,8 +1342,7 @@ function buildRecordCard(member){
     const note = document.createElement('div');
     note.className = 'note good';
     note.textContent = advanceMonths.length + ' month' + (advanceMonths.length > 1 ? 's' : '') +
-      ' paid in advance beyond ' + CONFIG.months[CONFIG.months.length - 1] + ': ' +
-      fmt(advanceTotal);
+      ' paid ahead of schedule: ' + fmt(advanceTotal);
     card.appendChild(note);
   } else if(shortMonths.length > 0){
     const note = document.createElement('div');
@@ -1228,12 +1373,25 @@ function renderRoster(){
     return;
   }
 
+  const filtered = MEMBERS.filter(member => {
+    if(rosterFilterText && !member.name.toLowerCase().includes(rosterFilterText)) return false;
+    if(rosterStatusFilter === 'all') return true;
+    const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
+    const ok = shortMonths.length === 0;
+    return rosterStatusFilter === 'owing' ? !ok : ok;
+  });
+
+  if(filtered.length === 0){
+    list.innerHTML = '<div class="roster-row"><span style="color:var(--ink-muted);">No matches for this filter.</span></div>';
+    return;
+  }
+
   list.innerHTML = '';
-  MEMBERS.forEach(member => {
+  filtered.forEach(member => {
     const total = ALL_MONTHS.reduce((sum, m) => sum + amountFor(member, m), 0);
     const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
     const owedAmount = shortMonths.reduce((sum, m) => sum + (CONFIG.monthlyAmount - amountFor(member, m)), 0);
-    const advanceMonths = CONFIG.extraMonths.filter(m => amountFor(member, m) > 0);
+    const advanceMonths = ALL_MONTHS.filter(m => !isDueByNow(m) && amountFor(member, m) > 0);
     const ok = shortMonths.length === 0;
 
     let badgeClass, badgeText;
@@ -1249,16 +1407,40 @@ function renderRoster(){
     }
 
     const row = document.createElement('div');
-    row.className = 'roster-row';
+    row.className = 'roster-row roster-row-clickable';
     row.innerHTML =
-      '<span class="roster-name">' + member.name + '</span>' +
+      '<span class="roster-name">' + escapeHtml(member.name) + '</span>' +
       '<span class="roster-meta">' +
         '<span class="roster-total">' + fmt(total) + ' paid</span>' +
         '<span class="roster-badge ' + badgeClass + '">' + badgeText + '</span>' +
       '</span>';
+    row.addEventListener('click', () => openEditorFor(member));
     list.appendChild(row);
   });
 }
+
+// Jumps straight from a roster row to the payment editor below, so editing or
+// removing someone doesn't require searching for them a second time.
+function openEditorFor(member){
+  document.getElementById('admin-search-input').value = member.name;
+  document.getElementById('admin-match-list').style.display = 'none';
+  showAdminEditor(member);
+  document.getElementById('edit-member-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('roster-filter-input').addEventListener('input', e => {
+  rosterFilterText = e.target.value.trim().toLowerCase();
+  renderRoster();
+});
+
+document.querySelectorAll('.roster-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.roster-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    rosterStatusFilter = btn.dataset.filter;
+    renderRoster();
+  });
+});
 
 /* ============================================================
    Dashboard
@@ -1295,13 +1477,15 @@ function renderDashboard(){
   const balance = totalCollected - CONFIG.amountDisbursed;
   const totalMembers = MEMBERS.length || 1;
   const compliancePct = Math.round((fullyPaidCount / totalMembers) * 100);
+  const dueMonthsCount = CONFIG.months.filter(m => isDueByNow(m)).length;
+  const expectedTotal = dueMonthsCount * CONFIG.monthlyAmount * MEMBERS.length;
 
   const statGrid = document.getElementById('stat-grid');
   statGrid.innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Total Collected</div>
       <div class="stat-value">${fmt(totalCollected)}</div>
-      <div class="stat-sub">All months · ${CONFIG.periodLabel}</div>
+      <div class="stat-sub">of ${fmt(expectedTotal)} expected so far</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Balance on Hand</div>
@@ -1316,9 +1500,17 @@ function renderDashboard(){
     <div class="stat-card alert-border">
       <div class="stat-label">Total Outstanding</div>
       <div class="stat-value">${fmt(arrearsAmount)}</div>
-      <div class="stat-sub">${arrearsMembers} member${arrearsMembers === 1 ? '' : 's'} with gaps</div>
+      <div class="stat-sub">Owed across the group so far</div>
     </div>
   `;
+
+  const updatedEl = document.getElementById('dashboard-updated');
+  if(updatedEl){
+    const now = new Date();
+    updatedEl.textContent = 'Live data · last refreshed ' +
+      now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
+      ' at ' + now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
 
   let lastActiveIndex = 0;
   ALL_MONTHS.forEach((m, i) => { if(monthTotals[m] > 0) lastActiveIndex = i; });
@@ -1361,6 +1553,17 @@ function showAdminEditor(member){
   const grid = document.createElement('div');
   grid.className = 'amount-grid';
 
+  const saveStatus = document.createElement('p');
+  saveStatus.className = 'save-status';
+
+  let saveStatusTimer = null;
+  function flashSaved(month){
+    saveStatus.textContent = 'Saved — ' + month;
+    saveStatus.classList.add('show');
+    clearTimeout(saveStatusTimer);
+    saveStatusTimer = setTimeout(() => saveStatus.classList.remove('show'), 1800);
+  }
+
   ALL_MONTHS.forEach(month => {
     const amt = amountFor(member, month);
     const cell = document.createElement('label');
@@ -1375,12 +1578,14 @@ function showAdminEditor(member){
       const newAmt = Math.max(0, parseFloat(input.value) || 0);
       setMonthAmount(member._id, month, newAmt);
       cell.classList.toggle('has-amount', newAmt > 0);
+      flashSaved(month);
     });
     cell.appendChild(document.createTextNode(month));
     cell.appendChild(input);
     grid.appendChild(cell);
   });
   area.appendChild(grid);
+  area.appendChild(saveStatus);
 
   const removeBtn = document.createElement('button');
   removeBtn.className = 'btn btn-danger';
@@ -1485,6 +1690,56 @@ document.getElementById('import-btn').addEventListener('click', () => {
 
 document.getElementById('admin-search-input').addEventListener('input', () => {
   refreshSearch(document.getElementById('admin-search-input'), document.getElementById('admin-match-list'), null, true);
+});
+
+/* ============================================================
+   Admin: export / backup
+   ============================================================ */
+function downloadFile(filename, content, mimeType){
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value){
+  const str = String(value === undefined || value === null ? '' : value);
+  if(/[",\n]/.test(str)){
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  const header = ['Name', ...ALL_MONTHS, 'Total Paid', 'Status'];
+  const rows = [header];
+
+  MEMBERS.forEach(member => {
+    const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
+    const ok = shortMonths.length === 0;
+    const total = ALL_MONTHS.reduce((sum, m) => sum + amountFor(member, m), 0);
+    const row = [member.name];
+    ALL_MONTHS.forEach(m => row.push(amountFor(member, m) || ''));
+    row.push(total);
+    row.push(ok ? 'Paid Up' : 'Owing');
+    rows.push(row);
+  });
+
+  const csvContent = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadFile('members-' + dateStr + '.csv', csvContent, 'text/csv;charset=utf-8;');
+});
+
+document.getElementById('export-json-btn').addEventListener('click', () => {
+  const data = MEMBERS.map(m => ({ id: m._id, name: m.name, payments: m.payments || {} }));
+  const json = JSON.stringify(data, null, 2);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadFile('members-backup-' + dateStr + '.json', json, 'application/json;charset=utf-8;');
 });
 </script>
 
