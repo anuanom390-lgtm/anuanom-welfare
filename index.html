@@ -31,11 +31,11 @@
 
 <style>
   :root{
-    --bg: #A6C8FF;
-    --bg-vignette: #78A9FF;
+    --bg: #78A9FF;
+    --bg-vignette: #4589FF;
     --surface: #FFFFFF;
-    --surface-2: #D0E2FF;
-    --rule: #78A9FF;
+    --surface-2: #A6C8FF;
+    --rule: #4589FF;
     --accent: #0F62FE;
     --accent-soft: #0043CE;
     --ink: #161616;
@@ -719,6 +719,51 @@
     margin: 4px 0 2px;
   }
 
+  .roster-list{
+    margin-top: 14px;
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+  }
+
+  .roster-row{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.86rem;
+    background: var(--surface);
+  }
+
+  .roster-row:last-child{ border-bottom: none; }
+
+  .roster-name{ font-weight: 600; color: var(--ink); }
+
+  .roster-meta{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .roster-total{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+  }
+
+  .roster-badge{
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .roster-badge.ok{ background: rgba(15,98,254,0.12); color: var(--accent-soft); }
+  .roster-badge.ahead{ background: rgba(36,161,72,0.12); color: #198038; }
+  .roster-badge.due{ background: rgba(218,30,40,0.12); color: var(--alert-soft); }
+
 
   footer{
     text-align: center;
@@ -799,6 +844,12 @@
 
   <!-- ADMIN -->
   <section class="panel" id="panel-admin">
+
+    <div class="admin-section">
+      <h2>All Members</h2>
+      <p class="hint">Everyone registered so far, with their total paid and current status.</p>
+      <div class="roster-list" id="roster-list"></div>
+    </div>
 
     <div class="admin-section">
       <h2>Edit a member's payments</h2>
@@ -914,6 +965,21 @@ function fmt(n){
 
 const ALL_MONTHS = [...CONFIG.months, ...CONFIG.extraMonths];
 
+// Turns a "Jul '26" style label into a single sortable number (year*12 + month index),
+// so we can tell whether a given month has started yet.
+function monthKey(label){
+  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const [abbr, yearPart] = label.split(" ");
+  const year = 2000 + parseInt(yearPart.replace("'", ""), 10);
+  return year * 12 + monthNames.indexOf(abbr);
+}
+
+function isDueByNow(month){
+  const now = new Date();
+  const currentKey = now.getFullYear() * 12 + now.getMonth();
+  return monthKey(month) <= currentKey;
+}
+
 // -- Header --
 document.getElementById('school-name').textContent = CONFIG.schoolName.toUpperCase();
 document.getElementById('association-name').textContent = CONFIG.associationName;
@@ -993,6 +1059,7 @@ const membersQuery = query(membersCol, orderBy("name"));
 onSnapshot(membersQuery, snapshot => {
   MEMBERS = snapshot.docs.map(d => ({ _id: d.id, ...d.data() }));
   renderDashboard();
+  renderRoster();
   refreshSearch(document.getElementById('search-input'), document.getElementById('match-list'), document.getElementById('record-area'), false);
   refreshSearch(document.getElementById('admin-search-input'), document.getElementById('admin-match-list'), null, true);
 }, err => {
@@ -1074,7 +1141,7 @@ function buildRecordCard(member){
 
   const memberNo = String(MEMBERS.findIndex(m => m._id === member._id) + 1).padStart(2, '0');
   // A core month counts as "settled" once its payment meets the standard amount.
-  const shortMonths = CONFIG.months.filter(m => amountFor(member, m) < CONFIG.monthlyAmount);
+  const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
   const shortfallTotal = shortMonths.reduce((sum, m) => sum + (CONFIG.monthlyAmount - amountFor(member, m)), 0);
   const advanceMonths = CONFIG.extraMonths.filter(m => amountFor(member, m) > 0);
   const advanceTotal = advanceMonths.reduce((sum, m) => sum + amountFor(member, m), 0);
@@ -1105,9 +1172,10 @@ function buildRecordCard(member){
   ALL_MONTHS.forEach(month => {
     const cell = document.createElement('div');
     const isExtra = CONFIG.extraMonths.includes(month);
+    const notDueYet = isExtra || !isDueByNow(month);
     const amt = amountFor(member, month);
-    const state = amt >= CONFIG.monthlyAmount ? 'paid' : (amt > 0 ? 'partial' : (isExtra ? 'future' : 'unpaid'));
-    cell.className = 'month-cell' + (isExtra && amt === 0 ? ' future' : '');
+    const state = amt >= CONFIG.monthlyAmount ? 'paid' : (amt > 0 ? 'partial' : (notDueYet ? 'future' : 'unpaid'));
+    cell.className = 'month-cell' + (notDueYet && amt === 0 ? ' future' : '');
     cell.innerHTML =
       '<span class="month-name">' + month + '</span>' +
       '<span class="amount-pill ' + state + '">' +
@@ -1144,6 +1212,50 @@ function buildRecordCard(member){
 }
 
 /* ============================================================
+   Admin: full members roster (name, total paid, status)
+   ============================================================ */
+function renderRoster(){
+  const list = document.getElementById('roster-list');
+  if(!list) return;
+
+  if(MEMBERS.length === 0){
+    list.innerHTML = '<div class="roster-row"><span style="color:var(--ink-muted);">No members added yet.</span></div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  MEMBERS.forEach(member => {
+    const total = ALL_MONTHS.reduce((sum, m) => sum + amountFor(member, m), 0);
+    const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
+    const owedAmount = shortMonths.reduce((sum, m) => sum + (CONFIG.monthlyAmount - amountFor(member, m)), 0);
+    const advanceMonths = CONFIG.extraMonths.filter(m => amountFor(member, m) > 0);
+    const ok = shortMonths.length === 0;
+
+    let badgeClass, badgeText;
+    if(!ok){
+      badgeClass = 'due';
+      badgeText = 'Owing ' + fmt(owedAmount) + ' · ' + shortMonths.length + ' mo' + (shortMonths.length > 1 ? 's' : '');
+    } else if(advanceMonths.length > 0){
+      badgeClass = 'ahead';
+      badgeText = 'Paid Up · +' + advanceMonths.length + ' mo' + (advanceMonths.length > 1 ? 's' : '') + ' ahead';
+    } else {
+      badgeClass = 'ok';
+      badgeText = 'Paid Up';
+    }
+
+    const row = document.createElement('div');
+    row.className = 'roster-row';
+    row.innerHTML =
+      '<span class="roster-name">' + member.name + '</span>' +
+      '<span class="roster-meta">' +
+        '<span class="roster-total">' + fmt(total) + ' paid</span>' +
+        '<span class="roster-badge ' + badgeClass + '">' + badgeText + '</span>' +
+      '</span>';
+    list.appendChild(row);
+  });
+}
+
+/* ============================================================
    Dashboard
    ============================================================ */
 function renderDashboard(){
@@ -1156,7 +1268,7 @@ function renderDashboard(){
   ALL_MONTHS.forEach(m => monthTotals[m] = 0);
 
   MEMBERS.forEach(member => {
-    const shortMonths = CONFIG.months.filter(m => amountFor(member, m) < CONFIG.monthlyAmount);
+    const shortMonths = CONFIG.months.filter(m => isDueByNow(m) && amountFor(member, m) < CONFIG.monthlyAmount);
     if(shortMonths.length === 0){
       fullyPaidCount++;
     } else {
